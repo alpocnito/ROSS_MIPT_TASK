@@ -1,0 +1,1 @@
+/usr/bin/cc  -std=c99   CMakeFiles/model.dir/model_main.c.o CMakeFiles/model.dir/model_driver.c.o CMakeFiles/model.dir/model_map.c.o  -o model -Wl,-rpath,/shr/lib/mpich/lib ../../core/libROSS.a -lm /shr/lib/mpich/lib/libmpi.so 
