@@ -7,175 +7,230 @@
 
 #ifndef _model_h
 #define _model_h
+
 #include "ross.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <assert.h>
 
-#define CHARGE_STATION 4
-#define GENERATOR_STATION 2
-#define CARGO_PLACE_MAX_NUM 25
-#define CARGO_PLACE_MIN_NUM 5
-#define MAX_ROW 9
-#define MAX_COL 10
 
-static int g_depositary[10][11] = 
-{
-//  0  1  2  3  4  5  6  7  8  9 10
-  { 0,11,12,13,14,15,16,17,18,19, 0 }, // 0
-  {10, 1, 1, 1, 1, 1, 1, 1, 1, 1,20 }, // 1
-  { 9, 1, 1, 1, 1, 1, 1, 1, 1, 1,21 }, // 2
-  { 8, 1, 1, 1, 1, 1, 1, 1, 1, 1,22 }, // 3
-  { 7, 1, 1, 1, 1, 1, 1, 1, 1, 1,23 }, // 4
-  { 6, 1, 1, 1, 1, 1, 1, 1, 1, 1,24 }, // 5
-  { 5, 1, 1, 1, 1, 1, 1, 1, 1, 1,25 }, // 6
-  { 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4 }, // 7
-  { 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4 }, // 8
-  { 4, 1, 1, 1, 1, 2, 1, 1, 1, 1, 4 }, // 9
-};
+#define CARGO_PLACE_MAX_NUM 200
+#define CARGO_PLACE_MIN_NUM 1
+#define MAX_ROOM_HEIGHT 40  // actually 35
+#define MAX_ROOM_LENGTH 50  // actually 50
 
-#define NO_ROBOT 0
-#define EMPTY_ROBOT 1
-#define CARGO_ROBOT 2
-#define NO_FUEL_ROBOT 3
-static int g_robots[10][11] = 
-{
-//  0  1  2  3  4  5  6  7  8  9 10
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 0
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 1
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 2
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 3
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 4
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 5
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 6
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 7
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 8
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, // 9
-};
+#define MAX_STRING_LEN 80
+#define MAX_COMMAND_LENGTH 100  // commands for one robot
+#define MAX_PATH_STRING_LENGTH 100
+#define MAX_DROP_BOXES 150
+#define MAX_QUEUE_LENGTH 50
+#define MAX_RECEIVERS 10
+
+
+extern char CONFIG_SIM_NAME [MAX_STRING_LEN];
+extern char CONFIG_MAP_PATH [MAX_STRING_LEN];
+extern char CONFIG_DROP_BOX_PATH[MAX_STRING_LEN];
+extern char CONFIG_ROBOT_PATH [MAX_STRING_LEN];
+extern char CONFIG_PACKAGE_PATH [MAX_STRING_LEN];
+extern int8_t CONFIG_MODEL_MOD;
+extern char CONFIG_LOGGING_PATH [MAX_STRING_LEN];
+extern int8_t CONFIG_LOGGING_MOD;
+
 
 // All times in second
-const static double g_robot_calc_time = 0.001;
-const static double g_robot_wait_time = 0.5;
-const static double g_robot_move_time = 0.5;
-const static double g_robot_round_time = 4;
-const static double g_robot_load_time = 2;
-const static double g_robot_unload_time = 1;
-const static double g_robot_charge_time = 12 * 60;
+extern int zoneSize;
+extern int unitSize;
+extern int safeUnitSize;
+extern float unitSpeed;
+extern float unitAccelerationTime;
+extern float unitStopTime;
+extern float unitRotateTime;
+extern float unitAccelerationEnergy;
+extern float unitMoveEnergy;
+extern float unitRotateEnergy;
+extern float loadTime;
+extern float unloadTime;
+extern float unitLoadEnergy;
+extern float unitUnloadEnergy;
+extern float unitWaitEnergy;
+extern float unitChargeTime;
+extern double unitChargeValue;
+extern float unitCount;
 
-// All distances in meters
-const static double g_robot_max_mileage = 12 * 60 * 10;
-const static double g_robot_min_mileage = 12 * 60 * 5;
+#define MAX_CARGO_NUMBER 10000 // maybe not that much
+#define NO_CARGO 6666 // ???
 
-#define MAX_CARGO_NUMBER 100005
-#define NO_CARGO 1337
 
-typedef enum
-{
-  MSGT_ROBOT_TO_ROBOT,
-  MSGT_ROBOT_TO_GENERATOR,
-  MSGT_GENERATOR_TO_ROBOT
-} msgType;
+#define CELL_ROBOT_UP    8
+#define CELL_ROBOT_RIGHT 6
+#define CELL_ROBOT_LEFT  4
+#define CELL_ROBOT_DOWN  2
 
-typedef enum
-{
-  EVENTR_STAY,
-  EVENTR_MOVE,
-  EVENTR_ROUND,
-  EVENTR_CREATE_ROUTE_TO_GENERATOR,
-  EVENTR_CREATE_ROUTE_TO_UNLOAD,
-  EVENTR_CREATE_ROUTE_TO_CHARGE,
-} robotEventType;
+#define CELL_WALL  1
+#define CELL_EMPTY 0
 
-typedef enum
-{
-  D_UP    = 0,
-  D_LEFT  = 1,
-  D_DOWN  = 2,
-  D_RIGHT = 3,
-  D_STAY  = 4
+#define MAX_COMMENT_LENGTH 1000
+#define MAX_ROBOTS 100
+
+typedef enum {
+  UP    = 0,
+  DOWN  = 1,
+  LEFT  = 2,
+  RIGHT = 3,
 } Direction;
 
-typedef enum
-{
-  A_0,
-  A_90,
-  A_180,
-  A_M90,
-} Angle;
-
-typedef struct
-{
-  msgType type;
-  union
-  {
-    // Robot to robot message
-    struct 
-    {
-      robotEventType event_type;
-      Direction direction;
-      Angle angle;
-    } r_r;
-
-    // Robot to generator message
-    struct 
-    {
-      tw_lpid robot_id;
-    } r_g;
-
-    // Generator to robot message
-    struct 
-    {
-      int cargo_num;
-    } g_r;
-
-  } body;
-} message;
-
-typedef struct
-{
-  int row;
-  int col;
-  Direction look_direction;
-  int mileage_remain;
-  int cargo_num;
-} robot_state;
-
-typedef struct
-{
-  // cargo_timetable[i][0] - arrival of cargo in offset from simulation start
-  // cargo_timetable[i][1] - number of place to put cargo
-  int cargo_timetable[MAX_CARGO_NUMBER][2];
-  int current_cargo;
-} generator_state;
-
-//MAPPING -----------------------------
-enum lpTypeVals
-{
-  TYPE_GENERATOR = 0,
-  TYPE_ROBOT = 1
+struct Robot {
+    int x;
+    int y;
+    int package_id; // id_in_line
+    float charge;
+    Direction direction;
 };
 
-extern tw_lpid lpTypeMapper(tw_lpid gid);
-extern tw_peid model_map(tw_lpid gid);
+typedef enum {
+  EMPTY = 0,
+  WALL = 1,
+  SENDER = 2,
+  CHARGER = 3, 
+  RECEIVER = 4,
+  DROP = 5
+} TileType; 
 
-extern void robot_init(robot_state *s, tw_lp *lp);
-extern void robot_prerun(robot_state *s, tw_lp *lp);
-extern void robot_event_handler(robot_state *s, tw_bf *bf, message *in_msg, tw_lp *lp);
-extern void robot_RC_event_handler(robot_state *s, tw_bf *bf, message *in_msg, tw_lp *lp);
-extern void robot_final(robot_state *s, tw_lp *lp);
-extern void robot_commit(robot_state *s, tw_bf *bf, message *m, tw_lp *lp);
+struct Cell {
+    int x;
+    int y;
+    TileType type;
+    struct Robot* robot;
+};
+
+struct Robots {
+    struct Robot data[MAX_ROBOTS];
+    int N;
+};
+
+struct Room {
+    
+    int height;
+    int width;
+
+    int box_number;
+    int receiver_number;
+
+    struct Cell data[MAX_ROOM_HEIGHT][MAX_ROOM_LENGTH];
+    struct Cell * drop_tiles [MAX_DROP_BOXES]; // drop id -> tile
+    struct Cell * receiver_tiles [MAX_DROP_BOXES]; // receiver_id -> tile
+};
+
+typedef struct CargoGenerator
+{
+  // cargo_timetable[i][0] - arrival of cargo in offset from simulation start
+  // cargo_timetable[i][1] - id of direction to send cargo
+  int cargo_timetable [MAX_CARGO_NUMBER][2]; // cargo_id -> [time, direction_id]
+  int receiver_timetable [MAX_RECEIVERS][MAX_CARGO_NUMBER]; // [receiver_id][order_id] -> cargo_id 
+  int cargos_current [MAX_RECEIVERS]; // [receiver_id] -> current order_id
+  int receivers_total;
+  int cargo_total;
+};
+
+struct Room map;
+struct Robots robots;
+struct CargoGenerator cargo_gen;
+
+typedef enum {
+    FALSE = 0,
+    TRUE  = 1,
+} boolean;
 
 
-extern void generator_init(generator_state *s, tw_lp *lp);
-extern void generator_prerun(generator_state *s, tw_lp *lp);
-extern void generator_event_handler(generator_state *s, tw_bf *bf, message *in_msg, tw_lp *lp);
-extern void generator_RC_event_handler(generator_state *s, tw_bf *bf, message *in_msg, tw_lp *lp);
-extern void generator_final(generator_state *s, tw_lp *lp);
-extern void generator_commit(generator_state *s, tw_bf *bf, message *m, tw_lp *lp);
+//Example enumeration of message type... could also use #defines
+typedef enum {
+  ROTATE_LEFT,
+  ROTATE_RIGHT,
+  MOVE,
+  BOX_GRAB,
+  BOX_DROP,
+  RECEIVED,
+  EXECUTED,
+  INIT,
+} message_type;
 
-//MAIN STUFF-----------------------------
+typedef enum {
+  COMMAND_CENTER,
+  ROBOT,
+} lp_type;
 
+//Message struct
+//   this contains all data sent in an event
+typedef struct {
+  message_type type;
+  double contents;
+  tw_lpid sender;
+} message;
+
+//State struct
+//   this defines the state of each LP
+typedef struct {
+  int got_msgs_ROTATE_LEFT;
+  int got_msgs_ROTATE_RIGHT;
+  int got_msgs_MOVE;
+  int got_msgs_BOX_GRAB;
+  int got_msgs_BOX_DROP;
+  int got_msgs_RECEIVED;
+  int got_msgs_EXECUTED;
+  int got_msgs_INIT;
+
+  int sent_msgs_ROTATE_LEFT;
+  int sent_msgs_ROTATE_RIGHT;
+  int sent_msgs_MOVE;
+  int sent_msgs_BOX_GRAB;
+  int sent_msgs_BOX_DROP;
+  int sent_msgs_RECEIVED;
+  int sent_msgs_EXECUTED;
+  int sent_msgs_INIT;
+
+  lp_type type; 
+  double value;
+  Direction direction;  
+
+  int x;
+  int y;
+
+} state;
+
+
+//Command Line Argument declarations
+extern unsigned int setting_1;
+
+//Global variables used by both main and driver
+// - this defines the LP types
 extern tw_lptype model_lps[];
-unsigned int custom_LPs_per_pe;
 
-int total_robots;
-int total_generators;
+//Function Declarations
+// defined in model_driver.c:
+extern void model_init(state *s, tw_lp *lp);
+extern void model_event(state *s, tw_bf *bf, message *in_msg, tw_lp *lp);
+extern void model_event_reverse(state *s, tw_bf *bf, message *in_msg, tw_lp *lp);
+extern void model_final(state *s, tw_lp *lp);
+// defined in model_map.c:
+extern tw_peid model_map(tw_lpid gid);
+extern tw_lpid model_typemap (tw_lpid gid);
+
+/*
+//Custom mapping prototypes
+void model_cutom_mapping(void);
+tw_lp * model_mapping_to_lp(tw_lpid lpid);
+tw_peid model_map(tw_lpid gid);
+*/
+
+// extern void parse(char* path);
+extern void read_config(char* path);
+extern void read_robots(char* path);
+extern void read_map(char* path);
+extern void read_cargo(char* path);
+
+extern void PrintMap();
+extern void RobotsPrint();
 
 #endif
