@@ -1,6 +1,13 @@
 #include "model.h"
-
 #include <libxml/parser.h>
+
+char CONFIG_PATH[MAX_PATH_STRING_LENGTH] = "/home/user/profkom/ROSS/second_attempt/RossPostSim/model_input/WMS-config.xml";
+char CONFIG_SIM_NAME[MAX_PATH_STRING_LENGTH] = "TEST";
+char CONFIG_MAP_PATH[MAX_PATH_STRING_LENGTH] = "/home/user/profkom/ROSS/second_attempt/RossPostSim/model_input/WMS-map.csv";
+char CONFIG_DROP_BOX_PATH[MAX_PATH_STRING_LENGTH] = "";
+char CONFIG_ROBOT_PATH[MAX_PATH_STRING_LENGTH] = "";
+char CONFIG_PACKAGE_PATH[MAX_PATH_STRING_LENGTH] = "/home/user/profkom/ROSS/second_attempt/RossPostSim/model_input/package_config (copy).txt";
+char CONFIG_LOGGING_PATH[MAX_PATH_STRING_LENGTH] = "/home/user/profkom/ROSS/second_attempt/RossPostSim/model_input/WMS-robots.xml";
 
 int zoneSize = 0;
 int unitSize = 0;
@@ -21,19 +28,11 @@ float unitChargeTime = 0;
 double unitChargeValue = 0;
 float unitCount = 0;
 
-char CONFIG_SIM_NAME[MAX_STRING_LEN] = "";
-char CONFIG_MAP_PATH[MAX_STRING_LEN] = "";
-char CONFIG_DROP_BOX_PATH[MAX_STRING_LEN] = "";
-char CONFIG_ROBOT_PATH[MAX_STRING_LEN] = "";
-char CONFIG_PACKAGE_PATH[MAX_STRING_LEN] = "";
-char CONFIG_LOGGING_PATH[MAX_STRING_LEN] = "";
-
 // not implemented at the moment
-int8_t CONFIG_MODEL_MOD = 0;
-int8_t CONFIG_LOGGING_MOD = 0;
 
 void read_config(char *path)
 {
+    assert(path);
     /*
     Loads xml file path to which is given in the argument. It is preferred to ALWAYS
     give absolute pathes, but if you are sure that the configurations will be loaded correctly the risk is all yours.
@@ -162,45 +161,53 @@ void read_config(char *path)
     printf("Configuration loaded\n");
 }
 
-void RoomAddRobot(struct Room *this, struct Robot *r)
+void WarehouseAddRobot(CentralState *this, RobotState *r)
 {
+    assert(this);
+    assert(r);
+
     assert(r->charge >= 0 && r->charge <= unitChargeValue);
-    assert(this->data[r->y][r->x].type != WALL);
-    assert(!this->data[r->y][r->x].robot);
-    this->data[r->y][r->x].robot = r;
+    assert(this->cells[r->y][r->x].type != T_WALL);
+    assert(!this->cells[r->y][r->x].robot);
+    this->cells[r->y][r->x].robot = r;
 }
 
-void RoomInit(struct Room *this)
+void WarehouseInit(CentralState *this)
 {
-    this->height = 0;
-    this->width = 0;
-    this->box_number = 0;
-    this->receiver_number = 0;
+    assert(this);
+
+    this->warehouse_height = 0;
+    this->warehouse_width = 0;
+    // this->box_number = 0;
+    // this->receiver_number = 0;
 }
 
-void RoomInitCell(struct Room *this, int i, int j, int tile_type)
+void WarehouseInitCell(CentralState *this, int i, int j, int tile_type)
 {
+    assert(this);
+
     if (tile_type > 4)
     {
         // that's a drop box
-        this->data[i][j].type = 5;
-        this->drop_tiles[tile_type - 5] = &(this->data[i][j]);
-        ++(this->box_number);
+        this->cells[i][j].type = 5;
+        // this->drop_tiles[tile_type - 5] = &(this->cells[i][j]);
+        // ++(this->box_number);
     }
     else if (tile_type == 4)
     {
-        this->data[i][j].type = tile_type;
-        this->receiver_tiles[this->receiver_number] = &(this->data[i][j]);
-        ++(this->receiver_number);
+        this->cells[i][j].type = tile_type;
+        // this->receiver_tiles[this->receiver_number] = &(this->cells[i][j]);
+        // ++(this->receiver_number);
     }
     else
     {
-        this->data[i][j].type = tile_type;
+        this->cells[i][j].type = tile_type;
     }
 }
 
 void read_robots(char *path)
 {
+    assert(path);
     /*
     input: path to robots configuration file
         xml format, every robot has two coordinates, charge level and direction
@@ -225,7 +232,7 @@ void read_robots(char *path)
 
     int robot_number = 0;
     int robot_id = 0;
-    int direction = 0;
+    int look_direction = 0;
     int x = 0, y = 0;
     float charge = 0;
 
@@ -238,7 +245,7 @@ void read_robots(char *path)
         {
             x = -1;
             y = -1;
-            direction = -1;
+            look_direction = -1;
             charge = -1;
             
             key = xmlNodeGetContent(node);
@@ -253,26 +260,27 @@ void read_robots(char *path)
                 } else if (strcmp(attribute->name, "y") == 0) {
                     assert(sscanf(value, "%d", &y));
                 } else if (strcmp(attribute->name, "direction") == 0) {
-                    assert(sscanf(value, "%d", &direction));
+                    assert(sscanf(value, "%d", &look_direction));
                 } else if (strcmp(attribute->name, "charge") == 0) {
                     assert(sscanf(value, "%f", &charge));
                 }
             }
 
-            robots.data[robot_id].x = x;
-            robots.data[robot_id].y = y;
-            robots.data[robot_id].direction = direction;
-            robots.data[robot_id].charge = charge;
-            RoomAddRobot(&map, &(robots.data[robot_id]));
+            g_robots.data[robot_id].x = x;
+            g_robots.data[robot_id].y = y;
+            g_robots.data[robot_id].look_direction = look_direction;
+            g_robots.data[robot_id].charge = charge;
+            WarehouseAddRobot(&g_map, &(g_robots.data[robot_id]));
             ++robot_number;
         }
     }
-    robots.N = robot_number;
-    printf("Loaded robots, total: %d\n", robots.N);
+    g_robots.N = robot_number;
+    printf("Loaded robots, total: %d\n", g_robots.N);
 }
 
 void read_map(char *path)
 {
+    assert(path);
     /*
     input: path to robots configuration file
         first line is like:  MAP_WIDTH : ...
@@ -290,23 +298,23 @@ void read_map(char *path)
     FILE *f = fopen(path, "r");
     if (f == NULL)
     {
-        printf("Can't read map config file %s", path);
+        printf("Can't read map config file %s\n", path);
         fclose(f);
         exit(1);
     }
-    RoomInit(&map);
+    WarehouseInit(&g_map);
 
-    if (!fscanf(f, "MAP_WIDTH: %d\n", &map.width) || !fscanf(f, "MAP_HEIGHT: %d\n", &map.height))
+    if (!fscanf(f, "MAP_WIDTH: %d\n", &g_map.warehouse_width) || !fscanf(f, "MAP_HEIGHT: %d\n", &g_map.warehouse_height))
     {
-        printf("Can't read map config file, incorrect header");
+        printf("Can't read map config file, incorrect header\n");
         fclose(f);
         exit(1);
     }
-    printf("Map width: %d, map height: %d\n", map.width, map.height);
+    printf("Map width: %d, map height: %d\n", g_map.warehouse_width, g_map.warehouse_height);
     int type_id;
-    for (int i = 0; i < map.height; ++i)
+    for (int i = 0; i < g_map.warehouse_height; ++i)
     {
-        for (int j = 0; j < map.width; ++j)
+        for (int j = 0; j < g_map.warehouse_width; ++j)
         {
             if (fscanf(f, "%d", &type_id) == 0)
             {
@@ -314,7 +322,7 @@ void read_map(char *path)
                 fclose(f);
                 exit(1);
             }
-            RoomInitCell(&map, i, j, type_id);
+            WarehouseInitCell(&g_map, i, j, type_id);
         }
     }
     printf("Map Loaded\n");
@@ -322,6 +330,7 @@ void read_map(char *path)
 
 void read_cargo(char *path)
 {
+    assert(path);
     printf("Loading cargo config...\n");
 
     FILE *fp = fopen(path, "r");
@@ -336,8 +345,6 @@ void read_cargo(char *path)
     int minute = 0;
     int second = 0;
     int id = 0;
-    cargo_gen.cargo_total = 0;
-    cargo_gen.receivers_total = map.receiver_number;
     while (fscanf(fp, "%02d:%02d:%02d %d", &hour, &minute, &second, &cargo) == 4)
     {
         if (id >= MAX_CARGO_NUMBER)
@@ -346,55 +353,41 @@ void read_cargo(char *path)
             break;
         }
 
-        cargo_gen.cargo_timetable[id][0] = second + minute * 60 + hour * 60 * 60;
-        cargo_gen.cargo_timetable[id][1] = cargo;
-        ++id; // THE RULE OF EVERY C PROGRAMMIST, do NOT write var++
+        g_cargo_gen.cargo_timetable[id][0] = second + minute * 60 + hour * 60 * 60;
+        g_cargo_gen.cargo_timetable[id][1] = cargo % 
+            (MAP_WAREHOUSE_CARGO_UNLOADING_PLACE_MAX_NUM - 
+             MAP_WAREHOUSE_CARGO_UNLOADING_PLACE_MIN_NUM) + 
+             MAP_WAREHOUSE_CARGO_UNLOADING_PLACE_MIN_NUM;
+        ++id;
     }
-    cargo_gen.cargo_total = id;
+    g_cargo_gen.timetable_size = id;
 
     fclose(fp);
-
-    printf("Cargo init (randomly deviding between receivers)\n");
-    srand(20);
-
-    for (int i = 0; i < cargo_gen.receivers_total; ++i)
-    {
-        cargo_gen.cargos_current[i] = -1;
-    }
-
-    for (int i = 0; i < cargo_gen.cargo_total; ++i)
-    {
-        id = rand() % cargo_gen.receivers_total;
-        cargo_gen.receiver_timetable[id][++cargo_gen.cargos_current[id]] = i;
-    }
-
-    for (int i = 0; i < 5; ++i)
-    {
-        printf("\treceiver 0; time: %4d; num: %2d\n",
-               cargo_gen.cargo_timetable[i][0], cargo_gen.cargo_timetable[i][1]);
-    }
+    g_cargo_gen.current_cargo = 0;
+    g_cargo_gen.num_cargo_received = 0;
+    g_cargo_gen.num_cargo_in_wait = 0;
 }
 
 void RobotsPrint()
 {
-    for (int i = 0; i < robots.N; ++i)
+    for (int i = 0; i < g_robots.N; ++i)
     {
         printf("Robot #%d is located at (%d, %d) and is facing ",
-               i + 1, robots.data[i].x, robots.data[i].y);
+               i + 1, g_robots.data[i].x, g_robots.data[i].y);
 
-        switch (robots.data[i].direction)
+        switch (g_robots.data[i].look_direction)
         {
-        case UP:
-            printf("UP\n");
+        case D_UP:
+            printf("D_UP\n");
             break;
-        case DOWN:
-            printf("DOWN\n");
+        case D_DOWN:
+            printf("D_DOWN\n");
             break;
-        case LEFT:
-            printf("LEFT\n");
+        case D_LEFT:
+            printf("D_LEFT\n");
             break;
-        case RIGHT:
-            printf("RIGHT\n");
+        case D_RIGHT:
+            printf("D_RIGHT\n");
             break;
         }
     }
@@ -402,11 +395,11 @@ void RobotsPrint()
 
 void PrintMap()
 {
-    printf("Printing map [%d, %d]\n", map.height, map.width);
-    for (int y = 0; y < map.height; ++y)
+    printf("Printing map [%d, %d]\n", g_map.warehouse_height, g_map.warehouse_width);
+    for (int y = 0; y < g_map.warehouse_height; ++y)
     {
-        for (int x = 0; x < map.width; ++x)
-            printf("%d ", map.data[y][x].type);
+        for (int x = 0; x < g_map.warehouse_width; ++x)
+            printf("%d ", g_map.cells[y][x].type);
         printf("\n");
     }
 }
